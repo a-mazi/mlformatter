@@ -54,19 +54,20 @@ const char* newLine {"\n"};
 
 const std::map<Format, std::vector<BreakTrigger>> lineBreakTriggersSet {{
   {Format::any, {
-    {       "(<[^>]*>)"        , BreakTrigger::Position::both , true},
     {"([^\\.]*\\.\\s+)([A-Z]+)", BreakTrigger::Position::after, true},
     {       "(\\?\\s+)([A-Z]+)", BreakTrigger::Position::after, true},
     {         "(!\\s+)([A-Z]+)", BreakTrigger::Position::after, true},
   }},
   {Format::html, {
+    {         "(<br/>)"        , BreakTrigger::Position::after, true},
+    {       "(<[^>]*>)"        , BreakTrigger::Position::both , true},
     {             "(})"        , BreakTrigger::Position::after, true},
   }},
 }};
 
 const std::map<Format, std::vector<std::string>> breakTriggerAntiPatternsSet {{
   {Format::html, {
-    "</?b>", "</?i>", "</?y>", "</?strike>", "</?tt>",
+    "</?b>", "</?i>", "</?y>", "</?strike>", "</?tt>", "</?code>",
     "</?sup>", "</?sub>", "</?ins>", "</?del>", "</?big>", "</?small>",
     "</?span[^>]*>",
     "ul\\.", "pl\\.",
@@ -82,17 +83,19 @@ const std::map<Format, std::vector<std::vector<std::string>>> finalReplacesSet {
     {"<meta name=\"created\".*>",""},
     {"<meta name=\"changed\".*>",""},
     {"h\\d.+\\{.+\\}",""},
+    {"(pre|code|kbd|tt).+\\{.+\\}",""},
     {"(page \\{.*) size: [a-z0-9\\.\\s]+;","$1"},
-    {"a:link\\s*\\{.*\\}",""},
+    {"a\\.?[a-z]*:link\\s*\\{.*\\}",""},
     {"a\\.?[a-z]*:visited\\s*\\{.*\\}",""},
     {"lang=\"\\w+-\\w+\"",""}, {"dir=\"ltr\"",""},
     {"margin-top: 0cm",""}, {"margin-bottom: 0cm",""}, {"line-height: 100%",""},
     {"(p \\{.*) background: [a-z]+;","$1"},
     {"(p \\{.*); background: [a-z]+","$1"},
+    {"style=\"background: #?[\\w\\d]+\"\\s",""},
     {"style=\"[\\s;]*\"",""}, {"class=\"western\"",""},
     {"(<body).*>","$1>"},
     {"(</?[\\d\\w]+)\\s*>","$1>"},
-    {"<<","<"},
+    {"<\\s*<","<"},
   }},
   {Format::any, {
     {"\\s+\\n","\n"},
@@ -100,13 +103,22 @@ const std::map<Format, std::vector<std::vector<std::string>>> finalReplacesSet {
   }},
 }};
 
+std::vector<std::string> noTouchDelimiters;
+
 std::vector<Format> lineBreakTriggerFormats;
 std::vector<Format> lineBreakAntiPatternsFormats;
 std::vector<Format> finalReplacerFormats;
-std::vector<std::function<void(std::string&)>> processors;
+using Processor = std::function<void(std::string&)>;
+std::vector<Processor> processors;
+std::vector<Processor> subProcessors;
 
 const char* dirDelimiter = "\\/";
 std::string workingDir;
+
+int headerLevelDownShift = 0;
+static constexpr int asbMaxHeaderLevel = 7;
+int maxHeaderLevel = asbMaxHeaderLevel;
+int headerNumber[asbMaxHeaderLevel]{};
 
 // File operations
 bool detectFormat (const std::string& fileName);
@@ -114,10 +126,12 @@ void readFromFile(const std::string& filePath, std::string& text);
 void writeToFile(const std::string& filePath, std::string& text);
 
 // Processors
+void superProcessorAroundNoTouch(std::string& text);
 void newLineEreaser(std::string& text);
 void lineBreaker(std::string& text);
 void finalReplacer(std::string& text);
 void htmlPictureEmbedder(std::string& text);
+void htmlTitleFromH1(std::string& text);
 void htmlHeaderNumberer(std::string& text);
 
 // Helper functions
@@ -169,16 +183,19 @@ bool detectFormat (const std::string& fileName)
 
   if(std::regex_match(fileExtension, std::regex("htm[l]?")))
   {
-    processors.push_back(newLineEreaser);
-    processors.push_back(htmlHeaderNumberer);
-    processors.push_back(lineBreaker);
-    lineBreakTriggerFormats.push_back(Format::any);
+    subProcessors.push_back(newLineEreaser);
+    subProcessors.push_back(htmlTitleFromH1);
+    subProcessors.push_back(htmlHeaderNumberer);
+    subProcessors.push_back(lineBreaker);
     lineBreakTriggerFormats.push_back(Format::html);
+    lineBreakTriggerFormats.push_back(Format::any);
     lineBreakAntiPatternsFormats.push_back(Format::html);
-    processors.push_back(finalReplacer);
+    subProcessors.push_back(finalReplacer);
     finalReplacerFormats.push_back(Format::html);
     finalReplacerFormats.push_back(Format::any);
-    processors.push_back(htmlPictureEmbedder);
+    subProcessors.push_back(htmlPictureEmbedder);
+    noTouchDelimiters = {"<pre[^>]*>","</[^>]+>"};
+    processors.push_back(superProcessorAroundNoTouch);
     isFormatDetected = true;
   }
   else if (fileExtension == "fodt")
@@ -234,6 +251,41 @@ void writeToFile(const std::string& filePath, std::string& text)
 }
 
 // Processor implementations
+
+void superProcessorAroundNoTouch(std::string& text)
+{
+  std::smatch match;
+  if(std::regex_search(text, match, std::regex{noTouchDelimiters[0]}))
+  {
+    std::string prefix            = match.prefix().str();
+    std::string openingTag        = match[0].str();
+    std::string noTouchWithSuffix = match.suffix().str();
+
+    for (auto processor : subProcessors)
+    {
+      processor(prefix);
+    }
+
+    std::regex_search(noTouchWithSuffix, match, std::regex{noTouchDelimiters[1]});
+
+    std::string noTouch    = match.prefix().str();
+    std::string closingTag = match[0].str();
+    std::string suffix     = match.suffix().str();
+
+    superProcessorAroundNoTouch(suffix);
+
+    std::stringstream newText;
+    newText << prefix << openingTag << newLine << noTouch << newLine << closingTag << newLine << suffix;
+    text = newText.str();
+  }
+  else
+  {
+    for (auto processor : subProcessors)
+    {
+      processor(text);
+    }
+  }
+}
 
 void newLineEreaser(std::string& text)
 {
@@ -433,17 +485,21 @@ void htmlPictureEmbedder(std::string& text)
   text = ostream.str();
 }
 
+void htmlTitleFromH1(std::string& text)
+{
+  std::smatch match;
+  std::regex_search(text, match, std::regex{"<h1[^>]*>([^<]*)</h1>"});
+  std::stringstream newTitle;
+  newTitle << "<title>" << match[1].str() << "</title>";
+  text = std::regex_replace(text, std::regex{"<title>[^<]*</title>"}, newTitle.str());
+}
+
 void htmlHeaderNumberer(std::string& text)
 {
   std::stringstream istream{text};
   std::stringstream ostream;
   std::string tag;
   static constexpr char tagOpenBracket = '<';
-  int headerLevelDownShift = 0;
-  static constexpr int asbMaxHeaderLevel = 7;
-  int maxHeaderLevel = asbMaxHeaderLevel;
-
-  int headerNumber[asbMaxHeaderLevel]{};
 
   while (std::getline(istream, tag, tagOpenBracket))
   {
