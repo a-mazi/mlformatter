@@ -133,7 +133,6 @@ void finalReplacer(std::string& text);
 void htmlPictureEmbedder(std::string& text);
 void htmlTitleFromH1(std::string& text);
 void htmlHeaderNumberer(std::string& text);
-void htmlUpdateReleaseInfo(std::string& text);
 
 // Helper functions
 std::vector<StringCell> detectTags (std::string& text, const BreakTrigger& breakTrigger);
@@ -184,9 +183,6 @@ bool detectFormat (const std::string& fileName)
 
   if(std::regex_match(fileExtension, std::regex("htm[l]?")))
   {
-#ifdef RELEASE
-    processors.push_back(htmlUpdateReleaseInfo);
-#endif
     subProcessors.push_back(newLineEreaser);
     subProcessors.push_back(htmlTitleFromH1);
     subProcessors.push_back(htmlHeaderNumberer);
@@ -556,14 +552,6 @@ void htmlHeaderNumberer(std::string& text)
     }
   }
   text = ostream.str();
-}
-
-void htmlUpdateReleaseInfo(std::string& text)
-{
-  text = std::regex_replace(text, std::regex{"(<p>)*<!-- mlformatter release .* -->(</p>)*"}, "");
-  text.append("<!-- mlformatter release ");
-  text.append(RELEASE);
-  text.append(" -->\n");
 }
 
 
