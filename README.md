@@ -5,8 +5,8 @@ mlformatter
 to make the file better suited for version comparison. It is focused on
 the HTML as the widest supported document format.
 
-1. Main features
-----------------
+Main features
+-------------
 
 -   sentence per line separation
 
@@ -14,8 +14,8 @@ the HTML as the widest supported document format.
 
 -   embedding pictures into HTML files
 
-2. Compilation
---------------
+Compilation
+-----------
 
 The source code of the program is put into a single file. This is to
 make it more portable and easy to deploy on any platform that supports
@@ -29,8 +29,8 @@ Otherwise, to compile type:
 
     $ g++ mlformatter.cpp -o mlformatter[.exe] 
 
-3. Usage
---------
+Usage
+-----
 
 You can use *mlformatter* standalone or as an additional tool in
 connection with other program. To use it standalone type in the console:
@@ -40,10 +40,10 @@ connection with other program. To use it standalone type in the console:
 *mlformatter* recognizes the file format by its extension. For
 unrecognized formats the program does nothing.
 
-4. Installation
----------------
+Installation
+------------
 
-### 4.1. LibreOffice Writer
+### LibreOffice Writer
 
 You can use the program with the *LibreOffice Writer*. It is a quite
 good HTML WYSIWYG editor. It supports also tags like: `<pre>`, `<code>`,
@@ -62,7 +62,7 @@ Assigned Action: Standard.Module1.Main
     Shell "/home/user/mlformatter " & url
     End Sub
 
-### 4.2. Git
+### Git
 
 To use it in *git* hooks modify the following file:
 
@@ -79,6 +79,3 @@ Alternatively a *gitconfig* can be used like this:
     [filter "formatter"]
         smudge = tools/mlformatter
         clean = tools/mlformatter
-
-\
-\
