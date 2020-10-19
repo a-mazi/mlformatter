@@ -46,21 +46,17 @@ The source code of the program is put into a single file.
 This is to make it more portable and easy to deploy on any platform that supports C++ compilation.
 </p>
 <p>
-If your platform supports <i>make</i>, to build the program type in a console:
+If your platform supports make, to build the program type in a console:
 </p>
-<p style="background: #eeeeee">
-<kbd>
-make [release|debug]
-</kbd>
-</p>
+<pre>
+$ make [release|debug] 
+</pre>
 <p>
 Otherwise, to compile type:
 </p>
-<p style="background: #eeeeee">
-<kbd>
-g++ mlformatter.cpp -o mlformatter[.exe]
-</kbd>
-</p>
+<pre>
+$ g++ mlformatter.cpp -o mlformatter[.exe] 
+</pre>
 <h2>
 3.
 Usage
@@ -69,11 +65,9 @@ Usage
 You can use <i>mlformatter</i> standalone or as an additional tool in connection with other program.
 To use it standalone type in the console:
 </p>
-<p style="background: #eeeeee">
-<kbd>
-mlformatter &lt;filename.ext&gt;
-</kbd>
-</p>
+<pre>
+$ ./mlformatter &lt;filename.ext&gt; 
+</pre>
 <p>
 <i>mlformatter</i> recognizes the file format by its extension.
 For unrecognized formats the program does nothing.
@@ -98,7 +92,7 @@ Save in: LibreOffice<br/>
 Event: Document has been saved<br/>
 Assigned Action: Standard.Module1.Main
 </p>
-<pre style="background: #eeeeee">
+<pre>
 Sub Main
 Dim url As String
 url = ConvertFromURL( ThisComponent.Url )
@@ -112,15 +106,13 @@ Git
 <p>
 To use it in <i>git</i> hooks modify the following file:
 </p>
-<p style="background: #eeeeee">
-<kbd>
+<p>
 .git/hooks/pre-commit
-</kbd>
 </p>
 <p>
 with this content:
 </p>
-<pre style="background: #eeeeee">
+<pre>
 #!/bin/sh
 git diff --cached --name-only --diff-filter=ACM | xargs -n 1 -I '{}' ../tools/mlformatter '{}'
 git diff --cached --name-only --diff-filter=ACM | xargs -n 1 -I '{}' git add '{}'
@@ -128,7 +120,7 @@ git diff --cached --name-only --diff-filter=ACM | xargs -n 1 -I '{}' git add '{}
 <p>
 Alternatively a <i>gitconfig</i> can be used like this:
 </p>
-<pre style="background: #eeeeee">
+<pre>
 [filter &quot;formatter&quot;]
     smudge = tools/mlformatter
     clean = tools/mlformatter
@@ -139,4 +131,3 @@ Alternatively a <i>gitconfig</i> can be used like this:
 </p>
 </body>
 </html>
-<!-- mlformatter release 2020-06-02_6b5bf2a -->

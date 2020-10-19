@@ -13,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
+#include <stdio.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -139,7 +140,13 @@ std::vector<StringCell> detectTags (std::string& text, const BreakTrigger& break
 void base64Encode(char* inputData, size_t inputDataSize, std::stringstream& outputData);
 
 
-int main (int argc, char * argv[]) {
+int main (int argc, char * argv[])
+{
+#ifdef RELEASE
+  printf("mlformatter: Release %s\n", RELEASE);
+#else
+  printf("mlformatter: Debug build\n");
+#endif
 
   std::string filePath;
 

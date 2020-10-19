@@ -2,4 +2,5 @@
 !.gitignore
 !*.cpp
 !*.html
+!*.md
 !Makefile
